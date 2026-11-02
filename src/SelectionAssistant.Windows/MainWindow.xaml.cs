@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using SelectionAssistant.Core;
 
 namespace SelectionAssistant.Windows;
@@ -15,35 +14,40 @@ public partial class MainWindow : Window
         InitializeComponent();
         TranslationView.DataContext = owner.Session;
         SelectionToggle.IsChecked = owner.Settings.SelectionEnabled;
+        SourceInitialized += (_, _) => Native.Theme(this);
+        RefreshLibrary();
     }
     internal void ShowTranslation()
     {
         TranslationView.Visibility = Visibility.Visible;
         LibraryPanel.Visibility = Visibility.Collapsed;
-        PageTitle.Text = "从一句话开始";
-        PageSubtitle.Text = "选中文字、翻成英文，再多问一句为什么。";
-        TranslateNav.Background = (Brush)FindResource("Accent"); TranslateNav.Foreground = Brushes.White;
-        CardsNav.Background = Brushes.Transparent; CardsNav.Foreground = (Brush)FindResource("Ink");
+        DemoButton.Visibility = Visibility.Visible;
+        PageTitle.Text = "翻译";
+        PageSubtitle.Text = "中文译成地道英文，英文译成通顺中文，顺手记下值得学的语块。";
+        TranslateNav.IsChecked = true;
     }
-    private void TranslateNav_Click(object sender, RoutedEventArgs e) => ShowTranslation();
-    private void CardsNav_Click(object sender, RoutedEventArgs e)
+    // Checked (not Click) so keyboard and UI Automation selection switch pages too.
+    private void TranslateNav_Checked(object sender, RoutedEventArgs e) { if (LibraryPanel is not null) ShowTranslation(); }
+    private void CardsNav_Checked(object sender, RoutedEventArgs e)
     {
         TranslationView.Visibility = Visibility.Collapsed;
         LibraryPanel.Visibility = Visibility.Visible;
-        PageTitle.Text = "我的学习卡片";
-        TranslateNav.Background = Brushes.Transparent; TranslateNav.Foreground = (Brush)FindResource("Ink");
-        CardsNav.Background = (Brush)FindResource("Accent"); CardsNav.Foreground = Brushes.White;
+        DemoButton.Visibility = Visibility.Collapsed;
+        PageTitle.Text = "学习卡片";
+        CardsNav.IsChecked = true;
         RefreshLibrary();
     }
     internal void RefreshLibrary()
     {
         if (CardsList is null) return;
         var query = SearchBox.Text.Trim();
-        var cards = owner.Cards.Where(c => query.Length == 0 || (c.Original + c.Translation + c.Source).Contains(query, StringComparison.OrdinalIgnoreCase)).OrderByDescending(c => c.CreatedAt).ToList();
+        var cards = owner.Cards.Where(c => query.Length == 0 || (c.Original + c.Translation + c.Source + string.Concat((c.Expressions ?? new()).Select(x => x.Phrase + x.Meaning))).Contains(query, StringComparison.OrdinalIgnoreCase)).OrderByDescending(c => c.CreatedAt).ToList();
         CardsList.ItemsSource = cards;
+        SearchHint.Visibility = query.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         EmptyLibrary.Visibility = cards.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        EmptyLibrary.Text = owner.LibraryError ?? (query.Length == 0 ? "还没有学习卡片。翻译一句话，点击“收藏卡片”保存到这里。" : "没有找到匹配的卡片，换个关键词试试。" );
-        if (LibraryPanel.Visibility == Visibility.Visible) PageSubtitle.Text = $"共 {owner.Cards.Count} 张卡片 · 原文、译文和你的每一次追问。";
+        EmptyText.Text = owner.LibraryError ?? (query.Length == 0 ? "还没有学习卡片。\n翻译一句话后点“收藏”，原文、译文、语块和追问都会存到这里。" : "没有找到匹配的卡片，换个关键词试试。");
+        CardCount.Text = owner.Cards.Count == 0 ? "" : owner.Cards.Count.ToString();
+        if (LibraryPanel.Visibility == Visibility.Visible) PageSubtitle.Text = owner.Cards.Count == 0 ? "收藏的句子会出现在这里。" : $"共 {owner.Cards.Count} 张 · 点开可以接着追问。";
     }
     private void Search_Changed(object sender, TextChangedEventArgs e) { if (IsInitialized) RefreshLibrary(); }
     private void Settings_Click(object sender, RoutedEventArgs e) => owner.ShowSettings();

@@ -32,6 +32,39 @@ internal static class Native
     [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr hwnd, int index);
     [DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr hwnd, int index, int value);
 
+    [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+    // Windows 11 only (ignored elsewhere): rounded corners and a title bar that blends into the app canvas.
+    internal static void Theme(Window window)
+    {
+        var hwnd = new WindowInteropHelper(window).Handle;
+        var canvas = (System.Windows.Media.Color)Application.Current.FindResource("CanvasColor");
+        void Set(int attribute, int value) => DwmSetWindowAttribute(hwnd, attribute, ref value, sizeof(int));
+        Set(33, 2);                                                  // DWMWA_WINDOW_CORNER_PREFERENCE = round
+        Set(34, 0xDEE3E4);                                           // DWMWA_BORDER_COLOR (0x00BBGGRR)
+        Set(35, canvas.R | canvas.G << 8 | canvas.B << 16);          // DWMWA_CAPTION_COLOR
+        Set(36, 0x1D1E1C);                                           // DWMWA_TEXT_COLOR
+    }
+
+    [StructLayout(LayoutKind.Sequential)] private struct JobLimits { public long UserTime, JobUserTime; public uint Flags; public UIntPtr MinWorkingSet, MaxWorkingSet; public uint ActiveProcesses; public UIntPtr Affinity; public uint Priority, Scheduling; }
+    [StructLayout(LayoutKind.Sequential)] private struct JobExtendedLimits { public JobLimits Basic; public ulong ReadOps, WriteOps, OtherOps, ReadBytes, WriteBytes, OtherBytes; public UIntPtr ProcessMemory, JobMemory, PeakProcessMemory, PeakJobMemory; }
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr CreateJobObject(IntPtr attributes, string? name);
+    [DllImport("kernel32.dll")] private static extern bool SetInformationJobObject(IntPtr job, int infoClass, ref JobExtendedLimits info, int length);
+    [DllImport("kernel32.dll")] private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
+    [DllImport("kernel32.dll")] private static extern IntPtr GetCurrentProcess();
+    private static IntPtr exitJob;
+
+    // Puts this process in a kill-on-close job: everything it launches afterwards (the hidden Edge and its
+    // helpers) inherits the job and is ended by Windows when the app exits, even after a crash.
+    internal static void EndChildrenWithApp()
+    {
+        if (exitJob != IntPtr.Zero) return;
+        var job = CreateJobObject(IntPtr.Zero, null);
+        if (job == IntPtr.Zero) return;
+        var limits = new JobExtendedLimits { Basic = new JobLimits { Flags = 0x2000 } }; // JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if (SetInformationJobObject(job, 9, ref limits, Marshal.SizeOf<JobExtendedLimits>()) && AssignProcessToJobObject(job, GetCurrentProcess())) exitJob = job;
+    }
+
     internal static bool IsOurWindow(IntPtr hwnd)
     {
         GetWindowThreadProcessId(hwnd, out var pid);

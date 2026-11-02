@@ -59,13 +59,17 @@ public partial class TranslateView : UserControl
     private void QuickAsk_Click(object sender, RoutedEventArgs e)
     {
         if (Model.IsBusy) return;
-        Model.Question = ((Button)sender).Content.ToString() switch
-        {
-            "解释用词" => "请解释这句英文里的重点用词，以及为什么这样翻译。",
-            "分析语法" => "请拆解这句话的语法结构，并给我一个类似的双语例句。",
-            _ => "这句话怎样说得更口语、更自然？请给出两种表达并说明适用场景。"
-        };
+        Model.Question = (string)((Button)sender).Tag;
         if (Model.AskCommand.CanExecute(null)) Model.AskCommand.Execute(null);
+    }
+    private void SpeakChunk_Click(object sender, RoutedEventArgs e) => Model.SpeakText(((SelectionAssistant.Core.Expression)((Button)sender).DataContext).Phrase);
+    private void Source_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            e.Handled = true;
+            if (Model.TranslateCommand.CanExecute(null)) Model.TranslateCommand.Execute(null);
+        }
     }
     private void Question_KeyDown(object sender, KeyEventArgs e)
     {
