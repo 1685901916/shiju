@@ -1,0 +1,36 @@
+<Window x:Class="SelectionAssistant.Windows.SettingsWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="模型与偏好 · 拾句" Width="580" Height="710" MinWidth="540" MinHeight="620" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+ <ScrollViewer VerticalScrollBarVisibility="Auto">
+  <StackPanel Margin="28">
+   <TextBlock Text="连接你的 DeepSeek" FontSize="25" FontWeight="SemiBold"/>
+   <TextBlock Text="也支持使用 Chat Completions 的兼容服务。" Foreground="{StaticResource Muted}" Margin="0,8,0,24"/>
+   <Border Style="{StaticResource Card}">
+    <StackPanel>
+     <TextBlock Text="接口地址" FontWeight="SemiBold" Margin="0,0,0,8"/>
+     <TextBox x:Name="EndpointBox" AutomationProperties.Name="接口地址"/>
+     <TextBlock Text="可以填写基础地址，或完整的 /chat/completions 地址。" Style="{StaticResource Caption}" Margin="0,7,0,18"/>
+     <TextBlock Text="模型名称" FontWeight="SemiBold" Margin="0,0,0,8"/>
+     <TextBox x:Name="ModelBox" AutomationProperties.Name="模型名称"/>
+     <TextBlock Text="API Key" FontWeight="SemiBold" Margin="0,18,0,8"/>
+     <PasswordBox x:Name="KeyBox" AutomationProperties.Name="API Key" Padding="12,10" Background="#FAFCF9" BorderBrush="{StaticResource Line}" BorderThickness="1"/>
+     <TextBlock x:Name="KeyHint" Style="{StaticResource Caption}" Margin="0,7,0,0"/>
+     <CheckBox x:Name="ClearKeyBox" Content="清除已保存的密钥" Margin="0,12,0,0" FontSize="12" Foreground="{StaticResource Muted}"/>
+    </StackPanel>
+   </Border>
+   <Border Style="{StaticResource Card}">
+    <StackPanel>
+     <TextBlock Text="划词偏好" FontWeight="SemiBold" Margin="0,0,0,14"/>
+     <CheckBox x:Name="SelectionBox" Content="在其他应用选中文字时，显示翻译小按钮" Margin="0,0,0,14"/>
+     <CheckBox x:Name="AutoBox" Content="选中文字后直接展开并翻译（会调用模型）"/>
+    </StackPanel>
+   </Border>
+   <TextBlock x:Name="ResultText" Foreground="#8C594C" Margin="0,0,0,14" FontSize="12"/>
+   <DockPanel>
+    <TextBlock Text="密钥由 Windows 加密保存在本机。&#10;保存配置不会发送模型请求。" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+    <Button Content="保存设置" Click="Save_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right"/>
+   </DockPanel>
+  </StackPanel>
+ </ScrollViewer>
+</Window>

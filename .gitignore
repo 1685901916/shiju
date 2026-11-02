@@ -1,0 +1,14 @@
+.dotnet/
+**/bin/
+**/obj/
+artifacts/
+tools/dotnet-install.ps1
+*.user
+.env
+.env.*
+!.env.example
+settings.json
+cards.json
+*.log
+*.jsonl
+
