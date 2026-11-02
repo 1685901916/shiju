@@ -9,8 +9,12 @@
     <AssemblyName>SelectionAssistant</AssemblyName>
     <RootNamespace>SelectionAssistant.Windows</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
+    <ApplicationIcon>Assets/app.ico</ApplicationIcon>
   </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets/app.ico" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../SelectionAssistant.Core/SelectionAssistant.Core.csproj" />
   </ItemGroup>

@@ -27,7 +27,7 @@ public sealed class ChatClient(HttpClient client)
         if (!response.IsSuccessStatusCode)
         {
             var code = (int)response.StatusCode;
-            var detail = code switch { 401 or 403 => "密钥无效或没有权限，请检查设置", 402 => "服务余额不足", 429 => "请求过于频繁，请稍后重试", _ => "服务暂时不可用，请检查接口地址或稍后重试" };
+            var detail = code switch { 400 => "请求被拒绝，请检查模型名称", 401 or 403 => "密钥无效或没有权限，请检查 API Key", 402 => "服务余额不足", 404 => "找不到这个接口，请检查接口地址", 429 => "请求过于频繁，请稍后重试", _ => "服务暂时不可用，请稍后重试" };
             throw new HttpRequestException($"{detail}（HTTP {code}）。", null, response.StatusCode);
         }
         using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);

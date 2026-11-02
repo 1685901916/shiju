@@ -1,4 +1,4 @@
-param([switch]$SkipTests)
+﻿param([switch]$SkipTests)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $localDotnet = Join-Path $projectRoot '.dotnet/dotnet.exe'

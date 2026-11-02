@@ -53,6 +53,13 @@ public partial class App : Application
                 if (wake.WaitOne(600)) Dispatcher.BeginInvoke(ShowMain);
         });
         Directory.CreateDirectory(DataDirectory);
+        // Keep the tray app alive on UI bugs; record the details locally (no selected text or keys).
+        DispatcherUnhandledException += (_, args) =>
+        {
+            args.Handled = true;
+            try { File.AppendAllText(Path.Combine(DataDirectory, "error.log"), DateTimeOffset.Now.ToString("O") + " " + args.Exception + Environment.NewLine); } catch (Exception) { }
+            if (Session is not null) Session.Status = "出了点问题，已记录到数据目录的 error.log。";
+        };
         settingsStore = new(DataDirectory);
         string? warning = null;
         try { Settings = settingsStore.Load(); }
@@ -60,7 +67,7 @@ public partial class App : Application
         library = new(Path.Combine(DataDirectory, "cards.json"));
         try { Cards = library.Load(); }
         catch (Exception ex) { LibraryError = ex is InvalidDataException ? ex.Message : "收藏文件暂时无法读取，已保留原文件。"; warning = LibraryError; }
-        Session = new(() => SettingsStore.Api(Settings));
+        Session = new(() => SettingsStore.Api(Settings), new SpeechPlayer(() => SettingsStore.Speech(Settings), Path.Combine(DataDirectory, "audio-cache"), new EdgeVoice(DataDirectory)));
         Session.SaveRequested += SaveCard;
         Session.SettingsRequested += ShowSettings;
         main = new(this);
@@ -146,9 +153,11 @@ public partial class App : Application
     internal void ShowSettings()
     {
         if (settingsWindow is not null) { settingsWindow.Activate(); return; }
-        settingsWindow = new(this) { Owner = main?.IsVisible == true ? main : popup?.IsVisible == true ? popup : null };
-        settingsWindow.Closed += (_, _) => settingsWindow = null;
-        settingsWindow.Show();
+        var window = new SettingsWindow(this) { Owner = main?.IsVisible == true ? main : popup?.IsVisible == true ? popup : null };
+        window.Closed += (_, _) => settingsWindow = null;
+        settingsWindow = window;
+        try { window.Show(); }
+        catch (Exception) { settingsWindow = null; throw; }
     }
 
     internal void UpdateSettings(UserSettings settings)
@@ -192,7 +201,8 @@ public partial class App : Application
         menu.Items.Add("启用 / 暂停划词", null, (_, _) => Dispatcher.BeginInvoke(() => ToggleSelection(!Settings.SelectionEnabled)));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("退出拾句", null, (_, _) => Dispatcher.BeginInvoke(() => { Exiting = true; Shutdown(); }));
-        tray = new Forms.NotifyIcon { Icon = System.Drawing.SystemIcons.Information, Text = "拾句 · 划词英语助手", Visible = true, ContextMenuStrip = menu };
+        using var icon = GetResourceStream(new Uri("pack://application:,,,/Assets/app.ico")).Stream;
+        tray = new Forms.NotifyIcon { Icon = new System.Drawing.Icon(icon, Forms.SystemInformation.SmallIconSize), Text = "拾句 · 划词翻译", Visible = true, ContextMenuStrip = menu };
         tray.DoubleClick += (_, _) => Dispatcher.BeginInvoke(ShowMain);
     }
 

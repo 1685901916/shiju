@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace SelectionAssistant.Core;
@@ -27,7 +28,7 @@ public sealed class LibraryStore(string path)
         {
             using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
-                JsonSerializer.Serialize(stream, cards, new JsonSerializerOptions { WriteIndented = true });
+                JsonSerializer.Serialize(stream, cards, new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
                 stream.Flush(true);
             }
             File.Move(temp, path, true);
